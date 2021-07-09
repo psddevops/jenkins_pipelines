@@ -2899,3 +2899,95 @@ case $1 in
 esac
 exit 0
 
+============================================================================
+---
+- name: retrieve the file realpath
+  shell: "realpath {{ file }}"
+  register: realpath
+
+- name: storing realpath
+  set_fact:
+    FILE_REALPATH: "{{ realpath.stdout }}"
+
+- name: printing FILE_REALPATH value
+  debug:
+    msg: "printing FILE_REALPATH value: {{ FILE_REALPATH }}"
+
+- name: retrieve the file folder
+  shell: "dirname {{ FILE_REALPATH }}"
+  register: filefolder
+
+- name: storing file folder value
+  set_fact:
+    FILE_FOLDER: "{{ filefolder.stdout }}"
+
+- name: printing FILE_FOLDER value
+  debug:
+    msg: "printing FILE_FOLDER value: {{ FILE_FOLDER }}"
+
+
+- name: retrieve the file name
+  shell: "basename {{ FILE_REALPATH }}"
+  register: filename
+
+- name: storing file name value
+  set_fact:
+    FILE_NAME: "{{ filename.stdout }}"
+
+- name: printing FILE_NAME value
+  debug:
+    msg: "printing FILE_NAME value: {{ FILE_NAME }}"
+
+- name: retrieve the file out
+  shell: "echo {{ FILE_NAME}}|sed 's/properties.template/properties/'"
+  register: fileout
+
+- name: storing file out value
+  set_fact:
+    FILE_OUT: "{{ fileout.stdout }}"
+
+- name: printing FILE_OUT value
+  debug:
+    msg: "printing FILE_OUT value: {{ FILE_OUT }}"
+
+- name: storing the original file content
+  shell: "cat {{ file }}"
+  register: filedata
+
+- name: print the original file content
+  debug:
+    msg: "{{ filedata.stdout_lines }}"
+
+- name: substitute the env
+  shell: "envsubst < {{ FILE_FOLDER }}/{{ FILE_NAME }} > {{ FILE_FOLDER }}/{{ FILE_OUT }}"
+  register: envdata
+
+- name: print the envdata
+  debug:
+    msg: "{{ envdata.cmd }}"
+
+- name: output of the final file
+  shell: "cat {{ FILE_FOLDER }}/{{ FILE_OUT }}"
+  register: finalfile
+
+- name: final file content
+  debug:
+    msg: "{{ finalfile.stdout_lines }}"
+    
+ ===================
+ 
+ ---
+  - name: loop testing
+    hosts: all
+
+    tasks:
+      - name: looking for .tempate files
+        command: "find /home/ansadmin/test /home/ansadmin/sample -name '*.template'"
+        register: ITEMS
+
+      - name: retrieving data
+        debug:
+          msg: "this is {{ITEMS.stdout_lines}}"
+
+      - include: fileprocess.yaml file={{ item }}
+        with_items: {{ITEMS.stdout_lines}}
