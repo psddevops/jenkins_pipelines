@@ -1,0 +1,33 @@
+pipeline{
+agent any 
+parameters{
+     string(name: 'TARGET_BRANCH', defaultValue: '',, description: 'Enter default value')
+	 string(name: 'ENVIRONMENT', defaultValue: '',, description: 'Please select the Environment')
+	 string(name: 'Deploy', defaultValue: '', description: 'Please select the service')
+}
+stages{
+     stage("params"){
+         steps{
+		      echo "${params.TARGET_BRANCH}"
+			  echo "${params.ENVIRONMENT}"
+			  echo "${params.Deploy}"
+		 }
+   }
+
+  stage("Deployment"){
+    when{
+		expression {params.TARGET_BRANCH == "master" && params.ENVIRONMENT == "PROD" }
+		}
+    steps{
+	    echo 'this is DEPLOY stage ....'
+        sh label: '', script: 'ssh ubuntu@18.118.23.40 /opt/tomcat/bin/shutdown.sh'
+	    sh label: '', script: 'scp -o StrictHostKeyChecking=no -r /var/lib/jenkins/workspace/CI-job/target/psdapp.war ubuntu@18.118.23.40:/opt/tomcat/webapps'
+	    sh label: '', script: 'ssh ubuntu@18.118.23.40 /opt/tomcat/bin/startup.sh'
+		echo 'DEPLOY stage completed....'
+	}
+  
+  }
+
+}
+
+}

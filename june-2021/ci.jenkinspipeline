@@ -1,0 +1,79 @@
+pipeline{
+agent any
+parameters{
+     string(name: 'TARGET_BRANCH', defaultValue: "master", description: 'Enter default value')
+	 choice(name: 'Environment', choices: ['Dev', 'UAT', 'PROD'], description: 'Please select the Environment')
+	 booleanParam(name: 'Deploy', defaultValue: false, description: 'Please select the deploy')
+    }
+environment{
+        PATH="/opt/maven/bin:$PATH"
+    }
+stages{
+  stage("SCM"){
+    steps{
+	  script{
+	    echo 'this is SCM stage ....'
+		git branch: '$TARGET_BRANCH', credentialsId: 'github_credentials', url: 'https://github.com/psddevops/sampletest.git'
+		echo 'SCM stage completed....'
+	  }
+	}
+  }
+  
+  stage("BUILD"){
+    steps{
+	    echo 'this is BUILD stage ....'
+		sh 'mvn clean package'
+		echo 'BUILD stage completed ....'
+	}
+	post{
+	success{
+	junit allowEmptyResults: true, skipMarkingBuildUnstable: true, skipPublishingChecks: true, testResults: '**/target/surefire-reports/*.xml'
+	slackSend color: "#439FE0", message: "BUILD Success: ${JOB_NAME} and ${BUILD_URL}"
+	mail to: 'devopsfeb2021@gmail.com',
+    subject: "'${JOB_NAME}' (${BUILD_NUMBER}) build completed",
+    body: "Please go to ${BUILD_URL} and verify the build"
+	}
+	failure{
+	slackSend color: "#439FE0", message: "BUILD FAILURE: ${JOB_NAME} and ${BUILD_URL}"
+	mail to: 'devopsfeb2021@gmail.com',
+    subject: "'${JOB_NAME}' (${BUILD_NUMBER}) build failure",
+    body: "Please go to ${BUILD_URL} and verify the build"
+	}
+	}
+  }
+  
+  stage("SONARSCANEER"){
+    steps{
+	  script{
+	    echo 'this is SONARSCANEER stage ....'
+		sh "/opt/sonar-scanner/bin/sonar-scanner -Dsonar.host.url=http://3.138.169.155:9000 -Dsonar.login=9c5842b5942840d4f6fce98fccc891e84002c775 -Dsonar.language=java -Dsonar.projectName=citi -Dsonar.sourceEncoding=UTF-8 -Dsonar.projectKey=citi -Dsonar.projectVersion=${BUILD_TAG} -Dsonar.java.binaries=${WORKSPACE}/target/classes -Dsonar.sources=${WORKSPACE} -Dsonar.projectBaseDir=${WORKSPACE} -Dsonar.coverage.jacoco.xmlReportPaths=${WORKSPACE}/target/site/jacoco/jacoco.xml -Dsonar.junit.reportPaths=${WORKSPACE}/target/surefire-reports/*.xml"
+		echo 'SONARSCANEER stage copleted....'
+	  }
+	}
+  }
+  
+
+  stage("NEXUS"){
+    steps{
+	  script{
+	    echo 'this is NEXUS stage ....'
+		nexusPublisher nexusInstanceId: 'nexus3', nexusRepositoryId: 'citi-releases', packages: [[$class: 'MavenPackage', mavenAssetList: [[classifier: '', extension: '', filePath: '/var/lib/jenkins/workspace/CI-job/target/psdapp.war']], mavenCoordinate: [artifactId: 'psdapp', groupId: 'com.pp', packaging: 'war', version: '$BUILD_NUMBER']]]
+		echo 'NEXUS stage completed ....'
+	  }
+	}
+  }
+  stage("Calling_CD-job"){
+    steps{
+	script{
+	if (params.Deploy == true) {
+	echo 'this is calling CD-job stage ....'
+	build(job: "CD-job", parameters: [string(name: 'ENVIRONMENT', value: "${params.Environment}"),
+    string(name: 'TARGET_BRANCH', value: "${params.TARGET_BRANCH}"),
+    string(name: 'Deploy', value: "${params.Deploy}")
+	])
+	}
+	}
+	}
+  }
+  }
+  }
