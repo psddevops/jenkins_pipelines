@@ -728,11 +728,12 @@ PSD DevOps.
     }
 	}
 }
-stage('Publish') {
-    steps{
-   //nexusPublisher nexusInstanceId: 'nexus3', nexusRepositoryId: 'citi-releases', packages: [[$class: 'MavenPackage', mavenAssetList: [[classifier: '', extension: '', filePath: '$WORKSPACE/target/psdapp.war']], mavenCoordinate: [artifactId: 'citi', groupId: 'com.citi', packaging: 'war', version: '1.0']]]
-   nexusPublisher nexusInstanceId: 'nexus3', nexusRepositoryId: 'citi-releases', packages: [[$class: 'MavenPackage', mavenAssetList: [[classifier: '', extension: '', filePath: '/var/lib/jenkins/workspace/sonar_test_declarative/target/psdapp.war']], mavenCoordinate: [artifactId: 'psdapp', groupId: 'com.citi', packaging: 'war', version: '$BUILD_NUMBER']]]
-   } }
+stage("Nexus"){
+   steps{
+   sh 'echo "This is nexus stage...."'
+   nexusPublisher nexusInstanceId: 'nexus3', nexusRepositoryId: 'rbs-maven-releases', packages: [[$class: 'MavenPackage', mavenAssetList: [[classifier: '', extension: '', filePath: '/var/lib/jenkins/workspace/ci_job/target/psdapp.war']], mavenCoordinate: [artifactId: 'psdapp', groupId: 'com.rbs', packaging: 'war', version: '1.0']]], tagName: '1.0'
+   }
+   }
 stage("Deploy"){
 			steps{
 	            sh label: '', script: 'scp -o StrictHostKeyChecking=no -r $WORKSPACE/target/*.war ubuntu@ec2-13-58-213-27.us-east-2.compute.amazonaws.com:/opt/tomcat/webapps'
