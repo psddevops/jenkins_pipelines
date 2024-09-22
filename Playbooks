@@ -3258,3 +3258,185 @@ case $1 in
         ;;
 esac
 exit 0
+=====================================
+
+Groups_Var demo
+===============
+groupvarsdemo
+├── group_vars
+│   ├── linuxservers.yml
+│   └── ubuntuservers.yml
+├── groupvarsdemo.yml
+└── inventory
+    └── myinventory
+
+
+groupvarsdemo.yml
+=================
+---
+ - name: Testing ansible group_vars in linux servers
+   hosts: linuxservers
+   become: yes
+   tasks:
+     - name: Install httpd on Redhat family
+       yum:
+         name: "{{ pkg_name }}"
+         state: present
+
+     - name: start the httpd service on Redhat family
+       service:
+         name: "{{ pkg_name }}"
+         state: started
+
+     - name: Printing software details
+       debug:
+         msg: " The installed software name is : {{ web_server_software }} and the port nuber is : {{ port }}"
+
+ - name: Testing ansible group_vars in ubuntu servers
+   hosts: ubuntuservers
+   become: yes
+   tasks:
+     - name: Install apache2 on Debian family
+       apt:
+         name: "{{ pkg_name }}"
+         force_apt_get: yes
+
+     - name: start the apache2 service on Debian family
+       service:
+         name: "{{ pkg_name }}"
+         state: started
+
+     - name: Printing software details
+       debug:
+         msg: " The installed software name is : {{ web_server_software }} and the port nuber is : {{ port }}"
+
+myinventory
+===========
+[linuxservers]
+L1 ansible_host=3.135.241.204  ansible_user=ansadmin
+L2 ansible_host=3.135.241.204  ansible_user=ansadmin
+
+[ubuntuservers]
+U1 ansible_host=18.119.192.222  ansible_user=ansadmin
+U2 ansible_host=18.119.192.222  ansible_user=ansadmin
+
+linuxservers.yml
+================
+---
+  pkg_name: httpd
+  port: 80
+  web_server_software: linux-httpd
+
+
+ubuntuservers.yml
+=================
+---
+  pkg_name: apache2
+  port: 80
+  web_server_software: ubuntu-apache2
+
+
+=======================================================================
+host_vars demo
+==============
+
+hostvarsdemo
+├── hostvarsdemo.yml
+└── inventory
+    ├── host_vars
+    │   ├── L1.yml
+    │   ├── L2.yml
+    │   ├── U1.yml
+    │   └── U2.yml
+    └── myinventory
+
+hostvarsdemo.yml
+================
+---
+ - name: Testing ansible group_vars in linux servers 
+   hosts: linuxservers
+   become: yes
+   tasks:
+     - name: Install httpd on Redhat family
+       yum:
+         name: "{{ pkg_name }}"
+         state: present
+
+     - name: start the httpd service on Redhat family
+       service:
+         name: "{{ pkg_name }}"
+         state: started
+
+     - name: Printing software details
+       debug:
+         msg: " The installed software name is : {{ web_server_software }} and the port nuber is : {{ port }}"
+
+     - name: Printing server details
+       debug:
+         msg: " The server name is : {{ server_name }} "
+
+
+ - name: Testing ansible group_vars in ubuntu servers
+   hosts: ubuntuservers
+   become: yes
+   tasks:
+     - name: Install apache2 on Debian family
+       apt:
+         name: "{{ pkg_name }}"
+         force_apt_get: yes
+
+     - name: start the apache2 service on Debian family
+       service:
+         name: "{{ pkg_name }}"
+         state: started
+
+     - name: Printing software details
+       debug:
+         msg: " The installed software name is : {{ web_server_software }} and the port nuber is : {{ port }}"
+
+     - name: Printing server details
+       debug:
+         msg: " The server name is : {{ server_name }} "
+
+
+L1.yml
+======
+---
+  pkg_name: httpd
+  port: 80
+  web_server_software: linux-httpd
+  server_name: L1_Linux
+
+L2.yml
+======
+---
+  pkg_name: httpd
+  port: 80
+  web_server_software: linux-httpd
+  server_name: L2_Linux
+
+U1.yml
+======
+---
+  pkg_name: apache2
+  port: 80
+  web_server_software: ubuntu-apache2
+  server_name: U1_Ubuntu
+
+U2.yml
+======
+---
+  pkg_name: apache2
+  port: 80
+  web_server_software: ubuntu-apache2
+  server_name: U2_Ubuntu
+
+myinventory
+===========
+[linuxservers]
+L1 ansible_host=3.135.241.204  ansible_user=ansadmin
+L2 ansible_host=3.135.241.204  ansible_user=ansadmin
+
+[ubuntuservers]
+U1 ansible_host=18.119.192.222  ansible_user=ansadmin
+U2 ansible_host=18.119.192.222  ansible_user=ansadmin
