@@ -1,0 +1,117 @@
+Basic-Example
+=============
+---
+  kind: Pod                          # Object Type
+  apiVersion: v1                     # API version
+  metadata:                          # Set of data which describes the Object
+    name: samplepod                  # Name of the Object
+  spec:                              # Data which describes the state of the Object
+    containers:                      # Data which describes the Container details
+      - name: samplecont             # Name of the Container
+        image: ubuntu:latest         # Base Image which is used to create Container
+        command: ["/bin/bash", "-c", "while true; do echo Hello-Kubernetes; sleep 5 ; done"]
+    restartPolicy: Never             # Defaults to Always
+
+
+command
+=======
+kubectl apply -f testpod.yaml
+kubectl get pods
+kubectl get pods -o wide
+kubectl describe pod samplepod
+kubectl exec samplepod -it /bin/bash
+kubectl exec samplepod -it -c samplecont /bin/bash
+kubectl exec samplepod -- hostname -i
+kubectl exec samplepod date
+kubectl exec samplepod -c samplecont date
+kubectl exec samplepod -c samplecont ls
+kubectl logs -f samplepod
+kubectl logs -f samplepod -c samplecont
+kubectl delete -f testpod.yaml
+
+
+
+=======================
+
+---
+  kind: Pod
+  apiVersion: v1
+  metadata:
+    name: environments
+  spec:
+    containers:
+      - name: mycont
+        image: ubuntu:latest
+        command: ["/bin/bash", "-c", "while true; do echo Hello-kubernetes; sleep 5 ; done"]
+        env:                        # List of environment variables to be used inside the pod
+          - name: MYNAME
+            value: PPNREDDY
+
+commands
+========
+kubectl exec environments -- /bin/bash -c  'echo $MYNAME'
+
+==================
+---
+  kind: Pod
+  apiVersion: v1
+  metadata:
+    name: http-pod
+  spec:
+    containers:
+      - name: mycont
+        image: httpd:latest
+        ports:
+          - containerPort: 80
+
+  Commands
+  kubectl exec http-pod -- hostname -i
+  curl 10.244.54.7:80
+  <html><body><h1>It works!</h1></body></html>
+
+
+  =================
+
+  ---
+  kind: Pod
+  apiVersion: v1
+  metadata:
+    name: labelspod
+    labels:                       # Specifies the Label details under it
+      env: development
+      class: pods
+  spec:
+    containers:
+      - name: labelcont
+        image: ubuntu:latest
+        command: ["/bin/bash", "-c", "while true; do echo Hello-kubernetes; sleep 5 ; done"]
+
+=====================
+
+Pods with labels
+================
+
+---
+  kind: Pod
+  apiVersion: v1
+  metadata:
+    name: labelspod
+    labels:                       # Specifies the Label details under it
+      env: development
+      class: pods
+  spec:
+    containers:
+      - name: labelcont
+        image: ubuntu:latest
+        command: ["/bin/bash", "-c", "while true; do echo Hello-kubernetes; sleep 5 ; done"]
+
+Commands
+========
+
+kubectl get pods --show-labels
+kubectl label pods <podname> <labelkey>=<value>
+kubectl get pods -l env=development
+kubectl get pods -l env=development,class=pods
+kubectl delete pod -l <labelkey>=<value>
+kubectl get pods -l 'env in (development,testing)'
+kubectl get pods -l 'env notin (development,testing)'
