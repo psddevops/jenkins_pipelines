@@ -70,22 +70,7 @@ kubectl exec environments -- /bin/bash -c  'echo $MYNAME'
   <html><body><h1>It works!</h1></body></html>
 
 
-  =================
-
-  ---
-  kind: Pod
-  apiVersion: v1
-  metadata:
-    name: labelspod
-    labels:                       # Specifies the Label details under it
-      env: development
-      class: pods
-  spec:
-    containers:
-      - name: labelcont
-        image: ubuntu:latest
-        command: ["/bin/bash", "-c", "while true; do echo Hello-kubernetes; sleep 5 ; done"]
-
+ 
 =====================
 
 Pods with labels
@@ -115,3 +100,75 @@ kubectl get pods -l env=development,class=pods
 kubectl delete pod -l <labelkey>=<value>
 kubectl get pods -l 'env in (development,testing)'
 kubectl get pods -l 'env notin (development,testing)'
+
+===============
+
+Pod with annotations
+====================
+---
+  kind: Pod
+  apiVersion: v1
+  metadata:
+    name: annotations-pod
+    labels:
+      app: apache
+    annotations:
+      description: "Deployment for Apache HTTP Server"
+      maintainer: "ppreddy@hcltech.com"
+  spec:
+    containers:
+      - name: mycont
+        image: httpd:latest
+        ports:
+          - containerPort: 80
+
+
+===================
+
+Multi container pods
+====================
+
+kind: Pod
+apiVersion: v1
+metadata:
+  name: multicontpod
+spec:
+  containers:
+    - name: container-1
+      image: ubuntu:latest
+      command: ["/bin/bash", "-c", "while true; do echo Hello-India; sleep 5 ; done"]
+    - name: container-2
+      image: ubuntu:latest
+      command: ["/bin/bash", "-c", "while true; do echo Hello-Karnataka; sleep 5 ; done"]
+
+Commands
+========
+kubectl get pods
+kubectl exec multicontpod -it -c container-1 /bin/bash
+kubectl exec multicontpod -it -c container-2 /bin/bash
+kubectl logs -f multicontpod -c container-1
+kubectl logs -f multicontpod -c container-2
+
+========================
+
+Node Selector
+=============
+kubectl label nodes ip-10-1-1-18 disktype=ssd
+
+---
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: my-pod
+  spec:
+    containers:
+      - name: container-1
+        image: ubuntu:latest
+        command: ["/bin/bash", "-c", "while true; do echo Hello-India; sleep 5 ; done"]
+    nodeSelector:
+      disktype: ssd
+
+Commands:
+kubectl apply -f testpod.yaml
+kubectl get pods -o wide
+kubectl describe node ip-10-1-1-18
