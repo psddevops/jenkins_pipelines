@@ -172,3 +172,194 @@ Commands:
 kubectl apply -f testpod.yaml
 kubectl get pods -o wide
 kubectl describe node ip-10-1-1-18
+
+=============================================
+---
+  kind: ReplicationController         # This defines to create the object of replication type
+  apiVersion: v1
+  metadata:
+    name: myrc
+  spec:
+    replicas: 2       # This element defines the desired number of pods
+    selector: # Tells the controller which pods to watch/belong to this Replication Controller
+      myname: ppreddy   # These must match the labels
+    template:           # Template element defines a template to launch a new pod
+      metadata:
+        name: rcpod
+        labels:            
+          myname: ppreddy
+      spec:
+        containers:
+          - name: rccontainer
+            image: ubuntu:latest
+            command: ["/bin/bash", "-c", "while true; do echo Hello-ppreddy; sleep 5 ; done"]
+
+Commands
+========
+
+kubectl apply -f rc-demo.yaml
+kubectl get rc
+kubectl get pods
+kubectl describe rc myrc
+kubectl get pods -o wide
+kubectl delete pod myrc-pt9d6
+kubectl get pods -o wide
+
+kubectl get pods -l myname=ppreddy
+kubectl scale rc myrc --replicas=10
+kubectl scale rc myrc --replicas=5
+
+kubectl delete -f rc-demo.yaml
+
+
+======================================
+
+## ReplicaSet Demo
+
+---
+  kind: ReplicaSet                        # Defines the object to be ReplicaSet
+  apiVersion: apps/v1                     # Replicaset is not available on v1
+  metadata:
+    name: myrs
+  spec:
+    replicas: 2  
+    selector:                  
+      matchExpressions:                    # These must match the labels
+        - {key: myname, operator: In, values: [ppreddy, ppnreddy, preddy]}
+        - {key: env, operator: NotIn, values: [production]}
+    template:      
+      metadata:
+        name: rspod
+        labels:              
+          myname: ppreddy
+          env: dev
+      spec:
+        containers:
+          - name: rscontainer
+            image: ubuntu:latest
+            command: ["/bin/bash", "-c", "while true; do echo Hello-ppreddy; sleep 5 ; done"]
+
+
+
+Commands
+========
+kubectl apply -f rs-demo.yaml
+kubectl get rs
+kubectl describe rs myrs
+
+kubectl get pods
+kubectl delete pod myrs-v7ggf
+kubectl get pods
+
+kubectl get pods -l myname=ppreddy
+kubectl get pods -l env=dev
+
+kubectl scale rs myrs --replicas=10
+kubectl scale rs myrs --replicas=5
+
+kubectl delete -f rs-demo.yaml
+
+
+=============================================
+---
+  kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: mydeployments
+  spec:
+    replicas: 2
+    selector:      # tells the controller which pods to watch/belong to
+      matchLabels:
+        name: deployment
+    template:
+      metadata:
+        name: deppod
+        labels:
+          name: deployment
+      spec:
+        containers:
+          - name: dep-cont
+            image: ubuntu:latest
+            command: ["/bin/bash", "-c", "while true; do echo Hello-DevOps; sleep 5; done"]
+
+Commands
+========
+kubectl apply -f deploy-demo.yaml
+kubectl get deployment
+kubectl describe deployment mydeployments
+kubectl get rs
+kubectl get pods
+kubectl get pods -o wide
+
+kubectl delete pod  mydeployments-84877d89c9-vw9gd
+kubectl get pods
+
+kubectl delete rs mydeployments-84877d89c9
+kubectl get rs
+kubectl get pods
+
+kubectl scale deployment mydeployments --replicas=10
+kubectl get deployment
+kubectl describe deployment mydeployments
+kubectl get rs
+kubectl get pods
+
+kubectl scale deployment mydeployments --replicas=1
+kubectl get deployment
+kubectl describe deployment mydeployments
+kubectl get rs
+kubectl get pods
+
+kubectl logs -f mydeployments-84877d89c9-7pk2m
+
+Lets deploy another version
+---------------------------
+---
+  kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: mydeployments
+  spec:
+    replicas: 2
+    selector:      # tells the controller which pods to watch/belong to
+      matchLabels:
+        name: deployment
+    template:
+      metadata:
+        name: deppod
+        labels:
+          name: deployment
+      spec:
+        containers:
+          - name: dep-cont
+            image: centos:latest
+            command: ["/bin/bash", "-c", "while true; do echo Hello-DevOps-centos; sleep 5; done"]
+
+
+Commands
+========
+kubectl apply -f deploy-demo.yaml
+kubectl get deployment
+kubectl describe deployment mydeployments
+kubectl get rs
+kubectl get pods
+kubectl get pods -o wide
+
+kubectl logs -f mydeployments-9cf4bc565-tn9z2
+
+kubectl rollout status deployment mydeployments
+kubectl rollout history deployment mydeployments
+kubectl rollout undo deploy/mydeployments --to-revision=1
+
+kubectl get rs
+kubectl get pods
+kubectl get pods -o wide
+
+kubectl logs -f mydeployments-84877d89c9-dwm26
+kubectl get deployment
+kubectl describe deployment mydeployments
+
+kubectl delete -f deploy-demo.yaml
+
+
+==========================
