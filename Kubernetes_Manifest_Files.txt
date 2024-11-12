@@ -363,3 +363,284 @@ kubectl delete -f deploy-demo.yaml
 
 
 ==========================
+
+# DaemonSet demo
+
+---
+  apiVersion: apps/v1
+  kind: DaemonSet
+  metadata:
+    name: nginx-ds
+  spec:
+    selector:
+      matchLabels:
+        app: nginx-app
+    template:
+      metadata:
+        name: nginx-pod
+        labels:
+          app: nginx-app
+      spec:
+        containers:
+          - name: nginx-container
+            image: nginx:latest
+            ports:
+              - containerPort: 80
+
+Commands
+========
+kubectl apply -f ds-demo.yaml
+
+kubectl get ds
+kubectl get rs
+kubectl get pods
+kubectl get pods -o wide
+kubectl describe ds nginx-ds
+
+kubectl delete -f  ds-demo.yaml
+
+
+===================================
+Container to Container communication
+====================================
+
+ctoc.yaml
+=========
+
+---
+  kind: Pod
+  apiVersion: v1
+  metadata:
+    name: testpod
+  spec:
+    containers:
+      - name: uc
+        image: ubuntu:latest
+        command: ["/bin/bash", "-c", "while true; do echo Hello-Kubernetes; sleep 5 ; done"]
+      - name: hc
+        image: httpd:latest
+        ports:
+         - containerPort: 80
+
+commands:
+=========
+kubectl apply -f ctoc.yaml
+kubectl exec testpod -it -c uc -- /bin/bash
+root@testpod:/# apt update && apt install curl
+root@testpod:/# curl localhost:80
+kubectl delete -f ctoc.yaml
+
+
+
+============================
+Pod to Pod communication
+========================
+
+podnginx.yaml
+=============
+
+---
+  kind: Pod
+  apiVersion: v1
+  metadata:
+    name: testpodnginx
+  spec:
+    containers:
+      - name: nc
+        image: nginx:latest
+        ports:
+         - containerPort: 80
+
+
+podhttpd.yaml
+=============
+---
+  kind: Pod
+  apiVersion: v1
+  metadata:
+    name: testpodhttpd
+  spec:
+    containers:
+      - name: hc
+        image: httpd:latest
+        ports:
+         - containerPort: 80
+
+commands:
+=========
+kubectl apply -f podnginx.yaml
+kubectl apply -f podhttpd.yaml
+kubectl get pods
+kubectl get pods -o wide
+curl 10.244.54.42:80
+curl 10.244.54.41:80
+kubectl delete -f podnginx.yaml
+kubectl delete -f podhttpd.yaml
+
+
+=====================================================
+clusterIP-Service
+
+clusteripdeployment.yaml
+========================
+
+---
+  kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: mydeployments
+  spec:
+    replicas: 2
+    selector:      # tells the controller which pods to watch/belong to
+      matchLabels:
+        name: deployment
+    template:
+      metadata:
+        name: testpod8
+        labels:
+          name: deployment
+      spec:
+        containers:
+          - name: hc
+            image: httpd
+            ports:
+              - containerPort: 80
+
+
+
+clusteripservice.yaml
+=====================
+
+---
+  kind: Service                  # Defines to create Service type Object
+  apiVersion: v1
+  metadata:
+    name: democipservice
+  spec:
+    ports:
+      - port: 80                # Containers port exposed
+        targetPort: 80          # Pods port
+    selector:
+      name: deployment          # Apply this service to any pods which has the specific label
+    type: ClusterIP             # Specifies the service type i.e ClusterIP or NodePort
+
+
+commands:
+=========
+kubectl apply -f clusteripdeployment.yaml
+kubectl apply -f clusteripservice.yaml
+kubectl get pods
+kubectl get svc
+curl 10.96.78.101:80
+kubectl delete pod mydeployments-779f4dbf96-rc89d
+kubectl get pods
+curl 10.96.78.101:80
+
+
+================================
+NodePort Service
+=================
+
+
+nodeportdeployment.yaml
+========================
+
+---
+  kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: mydeployments
+  spec:
+    replicas: 4
+    selector:      # tells the controller which pods to watch/belong to
+      matchLabels:
+        name: deployment
+    template:
+      metadata:
+        name: testpod8
+        labels:
+          name: deployment
+      spec:
+        containers:
+          - name: hc
+            image: httpd
+            ports:
+              - containerPort: 80
+
+
+
+nodeportservice.yaml
+====================
+
+---
+  kind: Service                  # Defines to create Service type Object
+  apiVersion: v1
+  metadata:
+    name: demonpservice
+  spec:
+    ports:
+      - port: 80                # Containers port exposed
+        targetPort: 80          # Pods port
+    selector:
+      name: deployment          # Apply this service to any pods which has the specific label
+    type: NodePort             # Specifies the service type i.e ClusterIP or NodePort
+
+
+commands:
+=========
+kubectl apply -f nodeportdeployment.yaml
+kubectl apply -f nodeportservice.yaml
+kubectl get pods
+kubectl get svc
+
+access URL's in browser:
+   http://18.218.106.172:30647/
+   http://3.145.94.69:30647/
+   http://3.129.253.12:30647/
+
+kubectl delete -f nodeportdeployment.yaml
+kubectl delete -f nodeportservice.yaml
+
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+---
+  kind: Deployment
+  apiVersion: apps/v1
+  metadata:
+    name: mydeployments
+  spec:
+    replicas: 1
+    selector:      # tells the controller which pods to watch/belong to
+      matchLabels:
+        name: deployment
+    template:
+      metadata:
+        name: testpod8
+        labels:
+          name: deployment
+      spec:
+        containers:
+          - name: hc
+            image: httpd
+            ports:
+              - containerPort: 80
+
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-app-service
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"  # or "clb" for Classic Load Balancer
+spec:
+  selector:
+    app: deployment
+  ports:
+    - protocol: TCP
+      port: 80            # Expose on port 80
+      targetPort: 8080     # Target container port
+  type: LoadBalancer      # Create an ELB
+
+
+  ===========================
