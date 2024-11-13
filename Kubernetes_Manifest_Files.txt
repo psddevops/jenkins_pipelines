@@ -644,3 +644,194 @@ spec:
 
 
   ===========================
+
+  Volumes
+=======
+
+emptyDir
+--------
+
+
+kubectl apply -f empty-dir-pods.yml
+===================================
+
+---
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: myvolemptydir
+  spec:
+    containers:
+     - name: uc1
+       image: ubuntu:latest
+       command: ["/bin/bash", "-c", "sleep 10000"]
+       volumeMounts:                         # Mount definition inside the container
+        - name: xchange
+          mountPath: "/tmp/xchange"          # Path inside the container to share
+     - name: uc2
+       image: ubuntu:latest
+       command: ["/bin/bash", "-c", "sleep 10000"]
+       volumeMounts:
+        - name: xchange
+          mountPath: "/tmp/data"
+    volumes:                                 # Definition for host
+     - name: xchange
+       emptyDir: {}
+
+
+Commands:
+=========
+
+kubectl apply -f empty-dir-pods.yml
+kubectl exec myvolemptydir -c uc1 -it -- /bin/bash
+cd /tmp/xchange
+touch uc1.txt
+
+kubectl exec myvolemptydir -c uc2 -it -- /bin/bash
+cd /tmp/data/
+ls
+touch uc2.txt
+kubectl delete -f empty-dir-pods.yml
+
+
+
+hostPath
+--------
+
+hostpath-pods.yml
+=================
+---
+  apiVersion: v1
+  kind: Pod
+  metadata:
+    name: myhostpath
+  spec:
+    containers:
+     - name: uc1
+       image: ubuntu:latest
+       command: ["/bin/bash", "-c", "sleep 10000"]
+       volumeMounts:                         # Mount definition inside the container
+        - mountPath: /tmp/hostpath
+          name: testvolume
+    volumes:                                 # Definition for host
+     - name: testvolume
+       hostPath:
+         path: /tmp/data
+         type: DirectoryOrCreate
+
+Commands:
+=========
+kubectl apply -f hostpath-pods.yml
+kubectl get pods -o wide
+
+verify the host where it's created
+kubectl delete -f hostpath-pods.yml
+
+=====================
+
+
+Static provisioning
+===================
+
+Create EBS volume in same az and copy the volume id: vol-0c6bcdb099f8bad56
+
+mypv.yaml
+---------
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: myebsvol
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce 
+  persistentVolumeReclaimPolicy: Recycle
+  awsElasticBlockStore:
+    volumeID: vol-09d341ec00318bab7
+    fsType: ext4
+
+#ReadWriteOnce means that the volume can be mounted as read-write by a single node at a time.
+
+#The reclaim policy specifies what happens to the volume when it is released by its associated PersistentVolumeClaim (PVC).
+
+#Recycle means that when the PVC is deleted, the volume will be wiped (its data deleted) and it can be reused by another claim.
+
+#Retain: You want to preserve the data for manual retrieval or reuse.
+#Recycle: You want the volume to be cleared of data and available for reuse (though deprecated).
+#Delete: You want to completely remove both the volume and the data when no longer needed.
+
+Access Mode Description
+=======================
+RWO:  ReadWriteOnce Volume can be mounted as read-write by a single node. 
+ROX:  ReadOnlyMany  Volume can be mounted as read-only by multiple nodes. 
+RWX:  ReadWriteMany Volume can be mounted as read-write by multiple nodes.  
+RWOP: ReadWriteOncePod  Volume can be mounted as read-write by a single pod (strictest).
+
+
+
+mypvc.yaml
+----------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: myebsvolclaim
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+
+
+
+
+
+staticvolumepod.yaml
+--------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pvdeploy
+spec:
+  replicas: 1
+  selector:      # tells the controller which pods to watch/belong to
+    matchLabels:
+     app: mypv
+  template:
+    metadata:
+      labels:
+        app: mypv
+    spec:
+      containers:
+      - name: shell
+        image: centos
+        command: ["bin/bash", "-c", "sleep 10000"]
+        volumeMounts:
+        - name: mypd
+          mountPath: "/tmp/persistent"
+      volumes:
+        - name: mypd
+          persistentVolumeClaim:
+            claimName: myebsvolclaim
+
+
+
+Commands:
+=========
+kubectl apply -f mypv.yaml
+kubectl get pv
+
+kubectl apply -f mypvc.yaml
+kubectl get pvc
+
+kubectl apply -f staticvolumepod.yaml
+
+
+kubectl delete -f mypv.yaml
+kubectl delete -f mypvc.yaml
+kubectl delete -f staticvolumepod.yaml
+
+
+===============================
+
