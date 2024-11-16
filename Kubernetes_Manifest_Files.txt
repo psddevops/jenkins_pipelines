@@ -1039,3 +1039,495 @@ cat log_level
 kubectl delete -f configmap.yaml
 kubectl delete -f configmap-env.yaml
 kubectl delete -f configmap-vol.yaml
+
+
+secrets  demo
+=============
+
+Create a Secret
+===============
+
+kubectl create secret generic my-secret \
+  --from-literal=username=ppreddy \
+  --from-literal=password=India@123
+
+kubectl get secrets my-secret -o yaml
+
+
+echo -n 'ppreddy' | base64
+
+echo -n 'India@123' | base64
+
+ubuntu@ip-10-1-1-187:~$ echo -n 'ppreddy' | base64
+cHByZWRkeQ==
+ubuntu@ip-10-1-1-187:~$ echo -n 'India@1234' | base64
+SW5kaWFAMTIzNA==
+ubuntu@ip-10-1-1-187:~$
+
+
+secret.yaml
+===========
+apiVersion: v1
+kind: Secret
+metadata:
+  name: my-secret
+type: Opaque
+data:
+  username: cHByZWRkeQ==   # 'myuser' base64-encoded
+  password: SW5kaWFAMTIzNA==  # 'mypassword' base64-encoded
+
+
+secrets-env.yaml
+================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: secret-env-pod
+spec:
+  containers:
+    - name: my-container
+      image: nginx
+      env:
+        - name: USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: my-secret
+              key: username
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: my-secret
+              key: password
+
+
+
+secrets-vol.yaml
+================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: secret-vol-pod
+spec:
+  containers:
+    - name: my-container
+      image: nginx
+      volumeMounts:
+        - name: secret-volume
+          mountPath: /etc/secret
+          readOnly: true
+  volumes:
+    - name: secret-volume
+      secret:
+        secretName: my-secret
+
+
+commands:
+=========
+kubectl apply -f secret.yaml
+kubectl apply -f secrets-env.yaml
+kubectl apply -f secrets-vol.yaml
+
+kubectl get secrets
+kubectl describe secret my-secret
+
+kubectl get pods
+kubectl exec -it secret-env-pod -- /bin/bash
+echo $USERNAME
+echo $PASSWORD
+
+
+kubectl exec -it secret-vol-pod -- /bin/bash
+cd /etc/secret
+cat username
+cat password
+
+kubectl delete -f secret.yaml
+kubectl delete -f secrets-env.yaml
+kubectl delete -f secrets-vol.yaml
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Namespaces demo
+===============
+kubectl get namespaces
+
+
+Creating namespace:
+===================
+kubectl create namespace dev
+kubectl get namespaces
+
+create-ns.yaml
+==============
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: qa
+
+kubectl apply -f create-ns.yaml
+
+Deleting namespace:
+===================
+kubectl delete  namespace dev
+kubectl get namespaces
+kubectl delete -f create-ns.yaml
+
+
+Switch to the namespace
+=======================
+kubectl create namespace dev
+kubectl create namespace qa
+kubectl config set-context --current --namespace=dev
+kubectl config view --minify --output 'jsonpath={..namespace}'
+
+
+kubectl apply -f basic-pod.yaml -n dev
+kubectl get pods -n dev
+kubectl delete -f basic-pod.yaml -n dev
+
+
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: compute-quota
+  namespace: dev
+spec:
+  hard:
+    pods: "10"
+    requests.cpu: "4"
+    requests.memory: 8Gi
+    limits.cpu: "8"
+    limits.memory: 16Gi
+
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+   name: myquota
+spec:
+  hard:
+    limits.cpu: "400m"
+    limits.memory: "400Mi"
+    requests.cpu: "200m"
+    requests.memory: "200Mi"
+
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: limits
+  namespace: qa
+spec:
+  limits:
+    - default:
+        cpu: "500m"
+        memory: "512Mi"
+      defaultRequest:
+        cpu: "250m"
+        memory: "256Mi"
+      type: Container
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Managing Compute Resources for Containers 
+
+resources.yaml
+==============
+apiVersion: v1
+kind: Pod
+metadata:
+  name: resources
+spec:
+  containers:
+  - name: resource
+    image: centos
+    command: ["/bin/bash", "-c", "while true; do echo Hello-Kubernetes; sleep 5 ; done"]
+    resources:                      # Describes the type of resources to be used
+      requests:
+        memory: "64Mi"
+        cpu: "100m"
+      limits:
+        memory: "128Mi"
+        cpu: "200m"
+
+
+
+
+Commands:
+=========
+kubectl apply -f resources.yaml
+kubectl get pods
+kubectl describe pod resources
+kubectl delete -f resources.yaml
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: resources
+spec:
+  containers:
+  - name: resource
+    image: centos
+    command: ["/bin/bash", "-c", "while true; do echo Hello-Kubernetes; sleep 5 ; done"]
+    resources:                      # Describes the type of resources to be used
+      requests:
+        memory: "6400Mi"
+        cpu: "10000m"
+      limits:
+        memory: "12800Mi"
+        cpu: "20000m"
+
+Commands:
+=========
+kubectl apply -f resources.yaml
+kubectl get pods
+kubectl describe pod resources
+kubectl delete -f resources.yaml
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Resource quota
+==============
+
+resourcequota.yaml
+==================
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+   name: myquota
+spec:
+  hard:
+    limits.cpu: "400m"
+    limits.memory: "400Mi"
+    requests.cpu: "200m"
+    requests.memory: "200Mi"
+
+
+commands:
+=========
+kubectl apply -f resourcequota.yaml
+kubectl get resourcequota 
+kubectl describe resourcequota myquota
+
+rqpod.yaml
+==========
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: deployments
+spec:
+  replicas: 3
+  selector:      
+    matchLabels:
+     objtype: deployment
+  template:
+    metadata:
+      name: testpod8
+      labels:
+        objtype: deployment
+    spec:
+     containers:
+       - name: c00
+         image: ubuntu
+         command: ["/bin/bash", "-c", "while true; do echo Hello-kubernetes; sleep 5 ; done"]
+         resources:
+            requests:
+              cpu: "200m"
+              memory: "128Mi"
+            limits:
+              cpu: "400m"
+              memory: "256Mi"
+
+
+commands
+========
+kubectl apply -f rqpod.yaml
+kubectl get deployments
+kubectl get rs
+kubectl get pods
+kubectl delete -f rqpod.yaml
+
+Change the replicas to 1 and test (replicas: 3) above manifest file
+
+
+kubectl apply -f rqpod.yaml
+kubectl get deployments
+kubectl get rs
+kubectl get pods
+kubectl delete -f rqpod.yaml
+
+delete the resoucequota
+
+kubectl delete -f resourcequota.yaml
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Limit range
+===========
+
+Example:
+========
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: limits
+  namespace: dev
+spec:
+  limits:
+  - max:
+      cpu: "2"
+      memory: "1Gi"
+    min:
+      cpu: "100m"
+      memory: "128Mi"
+    default:
+      cpu: "500m"
+      memory: "256Mi"
+    defaultRequest:
+      cpu: "200m"
+      memory: "256Mi"
+    type: Container
+
+
+cpulr.yaml
+==========
+
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: cpu-limit-range
+spec:
+  limits:
+  - default:
+      cpu: 0.5
+    defaultRequest:
+      cpu: 0.2
+    type: Container
+
+
+commands:
+=========
+kubectl apply -f cpulr.yaml
+kubectl get limitrange
+kubectl describe limitrange cpu-limit-range
+
+
+cpu-limit-pod.yaml
+==================
+apiVersion: v1
+kind: Pod
+metadata:
+  name: default-cpu-demo-2
+spec:
+  containers:
+  - name: default-cpu-demo-2-ctr
+    image: nginx
+    resources:
+      limits:
+        cpu: "0.5"
+
+commands:
+=========
+kubectl apply -f cpu-limit-pod.yaml
+kubectl describe pod default-cpu-demo-2
+
+cpu-request-pod.yaml
+====================
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: default-cpu-demo-3
+spec:
+  containers:
+  - name: default-cpu-demo-3-ctr
+    image: nginx
+    resources:
+      requests:
+        cpu: "0.3"
+
+commands:
+=========
+kubectl apply -f cpu-request-pod.yaml
+kubectl describe pod default-cpu-demo-3
+kubectl delete -f cpu-request-pod.yaml
+
+
+memorylr.yaml
+=============
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: mem-min-max-demo-lr
+spec:
+  limits:
+  - max:
+      memory: 500Mi
+    min:
+      memory: 250Mi
+    type: Container
+
+commands:
+=========
+kubectl apply -f memorylr.yaml
+kubectl get limitrange
+kubectl describe limitrange mem-min-max-demo-lr
+
+memorypod.yaml
+==============
+apiVersion: v1
+kind: Pod
+metadata:
+  name: constraints-mem-demo
+spec:
+  containers:
+  - name: constraints-mem-demo-ctr
+    image: nginx
+    resources:
+      limits:
+        memory: "400Mi"
+        #cpu: "0.4"
+      requests:
+        memory: "300Mi"
+        #cpu: "0.3"
+commands:
+=========
+kubectl apply -f memorypod.yaml
+kubectl get pods
+kubectl describe pod constraints-mem-demo
+kubectl delete -f memorypod.yaml
+
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+*** Change the namespace to default
+kubectl config set-context --current --namespace=default
+kubectl config view --minify --output 'jsonpath={..namespace}'
+
+cpudeployment.yaml
+==================
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+   name: mydeploy
+spec:
+   replicas: 1
+   selector:
+    matchLabels:
+     name: deployment
+   template:
+     metadata:
+       name: testpod8
+       labels:
+         name: deployment
+     spec:
+      containers:
+        - name: c00
+          image: httpd
+          ports:
+          - containerPort: 80
+          resources:
+            limits:
+              cpu: 500m
+            requests:
+              cpu: 200m
+
+commands:
+=========
+kubectl apply -f cpudeployment.yaml
+kubectl get pods
+
+update the replicas and verify the application
