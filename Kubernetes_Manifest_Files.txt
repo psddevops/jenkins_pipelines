@@ -1531,3 +1531,255 @@ kubectl apply -f cpudeployment.yaml
 kubectl get pods
 
 update the replicas and verify the application
+
+
+==========================
+
+HPA-Demo
+========
+Install metricserver
+
+git clone https://github.com/psddevops/jenkins_pipelines.git
+
+cd jenkins_pipelines
+
+cd metricserver
+
+kubectl apply -f .
+
+kubectl top nodes
+
+
+hpa-deployment.yaml
+===================
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+ name: hpa-demo-deployment
+spec:
+ selector:
+   matchLabels:
+     run: hpa-demo-deployment
+ replicas: 1
+ template:
+   metadata:
+     labels:
+       run: hpa-demo-deployment
+   spec:
+     containers:
+     - name: hpa-demo-deployment
+       image: k8s.gcr.io/hpa-example
+       ports:
+       - containerPort: 80
+       resources:
+         limits:
+           cpu: 500m
+         requests:
+           cpu: 200m
+
+
+hpa-service.yaml
+================
+apiVersion: v1
+kind: Service
+metadata:
+ name: hpa-demo-deployment
+ labels:
+   run: hpa-demo-deployment
+spec:
+ ports:
+ - port: 80
+ selector:
+   run: hpa-demo-deployment
+
+
+hpa.yaml
+========
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+ name: hpa-demo-deployment
+spec:
+ scaleTargetRef:
+   apiVersion: apps/v1
+   kind: Deployment
+   name: hpa-demo-deployment
+ minReplicas: 1
+ maxReplicas: 10
+ targetCPUUtilizationPercentage: 50
+
+
+Increasing load
+===============
+
+kubectl run -i --tty load-generator --rm --image=busybox --restart=Never -- /bin/sh -c "while sleep 0.02; do wget -q -O- http://hpa-demo-deployment; done"
+
+
+Commands:
+=========
+kubectl apply -f hpa-deployment.yaml
+kubectl apply -f hpa-service.yaml
+kubectl apply -f hpa.yaml
+
+
+kubectl get deployments
+kubectl get rs
+kubectl get hpa
+kubectl get pods
+kubectl describe hpa hpa-demo-deployment
+
+
+Let's increase the load
+
+kubectl run -i --tty load-generator --rm --image=busybox --restart=Never -- /bin/sh -c "while sleep 0.02; do wget -q -O- http://hpa-demo-deployment; done"
+
+kubectl delete -f hpa-deployment.yaml
+kubectl delete -f hpa-service.yaml
+kubectl delete -f hpa.yaml
+
+=========================
+
+Jobs-demo
+=========
+
+job1.yaml
+=========
+
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: testjob
+spec:
+  template:
+    metadata:
+      name: testjob
+    spec:
+      containers:
+      - name: counter
+        image: centos:7
+        command: ["/bin/bash", "-c", "echo 'Hi-k8s job'; sleep 5"]
+      restartPolicy: Never
+
+
+commands:
+=========
+kubectl apply -f job1.yaml
+watch kubectl get pods
+
+job2.yaml
+=========
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: testjob
+spec:
+  parallelism: 5                           # Runs for pods in parallel
+  activeDeadlineSeconds: 10  # Timesout after 30 sec
+  template:
+    metadata:
+      name: testjob
+    spec:
+      containers:
+      - name: counter
+        image: centos:7
+        command: ["/bin/bash", "-c", "echo 'Hi-k8s job'; sleep 20"]
+      restartPolicy: Never
+
+commands:
+=========
+kubectl apply -f job2.yaml
+watch kubectl get pods
+
+job3.yaml
+=========
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+ name: ppreddy
+spec:
+ schedule: "*/2 * * * *"
+ jobTemplate:
+   spec:
+     template:
+       spec:
+         containers:
+         - image: ubuntu
+           name: croncont
+           command: ["/bin/bash", "-c", "echo 'Hi-k8s job'; sleep 20"]
+         restartPolicy: Never
+
+commands:
+=========
+kubectl apply -f job3.yaml
+watch kubectl get pods
+
+==================================
+
+init containers
+===============
+
+init-pod-1.yaml
+===============
+apiVersion: v1
+kind: Pod
+metadata:
+  name: initcontainer
+spec:
+  initContainers:
+  - name: c1
+    image: centos
+    command: ["/bin/sh", "-c", "echo STAYHOME-STAYSAFE > /tmp/xchange/testfile; sleep 60"]
+    volumeMounts:        
+      - name: xchange
+        mountPath: "/tmp/xchange"  
+  containers:
+  - name: c2
+    image: centos
+    command: ["/bin/bash", "-c", "while true; do echo `cat /tmp/data/testfile`; sleep 5; done"]
+    volumeMounts:
+      - name: xchange
+        mountPath: "/tmp/data"
+  volumes:                            
+  - name: xchange
+    emptyDir: {}
+
+
+Commands:
+=========
+kubectl apply -f init-pod-1.yaml
+kubectl exec initcontainer -it -c c2 -- /bin/bash
+kubectl exec initcontainer -it -c c1 -- /bin/bash
+kubectl delete -f init-pod-1.yaml
+
+
+
+init-pod-2.yaml
+===============
+apiVersion: v1
+kind: Pod
+metadata:
+  name: initcontainer
+spec:
+  initContainers:
+    - name: ic1
+      image: ubuntu
+      command: ['/bin/bash', '-c', 'echo Initializing ... ic1... && sleep 60']
+    - name: ic2
+      image: ubuntu
+      command: ['/bin/bash', '-c', 'echo Initializing ... ic2... && sleep 60']
+  containers:
+    - name: main-init-cont
+      image: httpd:latest
+      ports:
+       - containerPort: 80
+
+Commands:
+=========
+kubectl apply -f init-pod-2.yaml
+kubectl exec initcontainer -it -c main-init-cont -- /bin/bash
+kubectl exec initcontainer -it -c ic1 -- /bin/bash
+kubectl exec initcontainer -it -c ic2 -- /bin/bash
+
+kubectl delete -f init-pod-1.yaml
