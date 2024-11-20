@@ -1783,3 +1783,385 @@ kubectl exec initcontainer -it -c ic1 -- /bin/bash
 kubectl exec initcontainer -it -c ic2 -- /bin/bash
 
 kubectl delete -f init-pod-1.yaml
+
+
+==============================================
+
+Recreate demo
+=============
+
+build-1.yaml
+============
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-1.10
+spec:
+  replicas: 2
+  selector:      
+    matchLabels:
+      name: nginx
+      version: "1.10"
+  template:
+    metadata:
+      labels:
+        name: nginx
+        version: "1.10"
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.10
+          ports:
+            - name: http
+              containerPort: 80
+
+build-2.yaml
+============
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-1.10
+spec:
+  replicas: 2
+  strategy:
+    type: Recreate
+  selector:      
+    matchLabels:
+      name: nginx
+      version: "1.10"
+  template:
+    metadata:
+      labels:
+        name: nginx
+        version: "1.10"
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.11
+          ports:
+            - name: http
+              containerPort: 80
+
+
+service.yaml
+============
+---
+  kind: Service                  # Defines to create Service type Object
+  apiVersion: v1
+  metadata:
+    name: democipservice
+  spec:
+    ports:
+      - port: 80                # Containers port exposed
+        targetPort: 80          # Pods port
+    selector:
+        name: nginx
+        version: "1.10"         # Apply this service to any pods which has the specific label
+    type: ClusterIP             # Specifies the service type i.e ClusterIP or NodePort
+
+
+
+Commands:
+=========
+kubectl apply -f build-1.yaml
+kubectl apply -f service.yaml
+
+kubectl describe service/democipservice
+curl -s http://10.102.234.176:80/version
+
+curl -s http://10.102.234.176:80/version
+
+kubectl delete -f build-1.yaml
+kubectl apply -f service.yaml
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+rolling demo
+============
+
+rdbuild-1.yaml
+==============
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-1.10
+spec:
+  replicas: 2
+  selector:      
+    matchLabels:
+      name: nginx
+      version: "1.10"
+  template:
+    metadata:
+      labels:
+        name: nginx
+        version: "1.10"
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.10
+          ports:
+            - name: http
+              containerPort: 80
+
+rdbuild-2.yaml
+==============
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-1.10
+spec:
+  replicas: 3
+  selector:      
+    matchLabels:
+      name: nginx
+      version: "1.10"
+  template:
+    metadata:
+      labels:
+        name: nginx
+        version: "1.10"
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.11
+          ports:
+            - name: http
+              containerPort: 80
+
+
+service.yaml
+============
+---
+  kind: Service                  # Defines to create Service type Object
+  apiVersion: v1
+  metadata:
+    name: democipservice
+  spec:
+    ports:
+      - port: 80                # Containers port exposed
+        targetPort: 80          # Pods port
+    selector:
+        name: nginx
+        version: "1.10"         # Apply this service to any pods which has the specific label
+    type: ClusterIP             # Specifies the service type i.e ClusterIP or NodePort
+
+Commands:
+=========
+kubectl apply -f rdbuild-1.yaml
+kubectl apply -f service.yaml
+
+kubectl describe service/democipservice
+curl -s http://10.100.54.100:80/version
+
+kubectl apply -f rdbuild-2.yaml
+
+
+kubectl apply -f service.yaml
+curl -s http://10.100.54.100:80/version
+
+kubectl delete -f rdbuild-2.yaml
+kubectl delete -f service.yaml
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Blue-Green deployment
+=====================
+blue.yaml
+---------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-1.10
+spec:
+  replicas: 2
+  selector:      
+    matchLabels:
+      name: nginx
+      version: "1.10"
+  template:
+    metadata:
+      labels:
+        name: nginx
+        version: "1.10"
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.10
+          ports:
+            - name: http
+              containerPort: 80
+
+
+bgservice.yaml
+--------------
+---
+  kind: Service                  # Defines to create Service type Object
+  apiVersion: v1
+  metadata:
+    name: democipservice
+  spec:
+    ports:
+      - port: 80                # Containers port exposed
+        targetPort: 80          # Pods port
+    selector:
+        name: nginx
+        version: "1.10"         # Apply this service to any pods which has the specific label
+    type: ClusterIP             # Specifies the service type i.e ClusterIP or NodePort
+
+
+
+
+
+green.yaml
+----------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-1.11
+spec:
+  replicas: 2
+  selector:      
+    matchLabels:
+      name: nginx
+      version: "1.11"
+  template:
+    metadata:
+      labels:
+        name: nginx
+        version: "1.11"
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.11
+          ports:
+            - name: http
+              containerPort: 80
+
+
+
+Commands:
+=========
+watch kubectl get all
+
+kubectl apply -f blue.yaml
+kubectl apply -f bgservice.yaml
+kubectl describe service/democipservice
+
+curl -s http://10.110.71.254/version
+
+kubectl apply -f green.yaml
+
+update "bgservice.yaml" and apply the changes
+    selector:
+        name: nginx
+        version: "1.11"         # Apply this service to any pods which has the specific label
+    type: ClusterIP             # Specifies the service type i.e ClusterIP or NodePort
+
+
+kubectl apply -f bgservice.yaml
+curl -s http://10.110.71.254/version
+
+kubectl delete -f bgservice.yaml
+kubectl delete -f blue.yaml
+kubectl delete -f green.yaml
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Canary deployment Demo
+======================
+
+
+cbuild-1.yaml
+=============
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-1.10
+spec:
+  replicas: 3
+  selector:      
+    matchLabels:
+      name: nginx
+  template:
+    metadata:
+      labels:
+        name: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.10
+          ports:
+            - name: http
+              containerPort: 80
+
+cbuild-2.yaml
+=============
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-1.11
+spec:
+  replicas: 1
+  selector:      
+    matchLabels:
+      name: nginx
+  template:
+    metadata:
+      labels:
+        name: nginx
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.11
+          ports:
+            - name: http
+              containerPort: 80
+
+cservice.yaml
+=============
+---
+  kind: Service                  # Defines to create Service type Object
+  apiVersion: v1
+  metadata:
+    name: democipservice
+  spec:
+    ports:
+      - port: 80                # Containers port exposed
+        targetPort: 80          # Pods port
+    selector:
+        name: nginx             # Apply this service to any pods which has the specific label
+    type: ClusterIP             # Specifies the service type i.e ClusterIP or NodePort
+
+
+Commands:
+=========
+kubectl apply -f cbuild-1.yaml
+kubectl apply -f cservice.yaml
+
+kubectl describe service/democipservice
+curl -s http://10.104.61.120/version
+
+kubectl apply -f cbuild-2.yaml
+curl -s http://10.104.61.120/version
+
+update the replicas:
+
+cbuild-1.yaml --> replcas:3
+cbuild-2.yaml --> replcas:1
+curl -s http://10.104.61.120/version
+
+cbuild-1.yaml --> replcas:2
+cbuild-2.yaml --> replcas:2
+kubectl apply -f cbuild-1.yaml
+kubectl apply -f cbuild-2.yaml
+curl -s http://10.104.61.120/version
+
+cbuild-1.yaml --> replcas:1
+cbuild-2.yaml --> replcas:3
+kubectl apply -f cbuild-1.yaml
+kubectl apply -f cbuild-2.yaml
+curl -s http://10.104.61.120/version
+
+
+kubectl delete -f cbuild-1.yaml
+curl -s http://10.104.61.120/version
+kubectl delete -f cbuild-1.yaml
+kubectl delete -f cservice.yaml
+
+================================
