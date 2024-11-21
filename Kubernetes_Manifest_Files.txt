@@ -2165,3 +2165,234 @@ kubectl delete -f cbuild-1.yaml
 kubectl delete -f cservice.yaml
 
 ================================
+
+Node affinity demo
+==================
+
+hardna.yaml
+===========
+apiVersion: v1
+kind: Pod
+metadata:
+  name: example-pod
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: disktype
+                operator: In
+                values:
+                  - ssd
+  containers:
+    - name: uc
+      image: ubuntu:latest
+      command: ["/bin/bash", "-c", "while true; do echo Hello-DevOps; sleep 5; done"]
+
+
+commands
+========
+kubectl get nodes --show-labels
+kubectl apply -f hardna.yaml
+kubectl get pods -o wide
+kubectl delete -f hardna.yaml
+
+
+softna.yaml
+===========
+apiVersion: v1
+kind: Pod
+metadata:
+  name: example-pod
+spec:
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 1
+          preference:
+            matchExpressions:
+              - key: disktype
+                operator: In
+                values:
+                  - ssd1
+  containers:
+    - name: uc
+      image: ubuntu:latest
+      command: ["/bin/bash", "-c", "while true; do echo Hello-DevOps; sleep 5; done"]
+
+Commands
+========
+kubectl apply -f softna.yaml
+kubectl get pods -o wide
+kubectl delete -f softna.yaml
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Node anti-affinity demo
+=======================
+
+
+hardnaa.yaml
+============
+apiVersion: v1
+kind: Pod
+metadata:
+  name: example-pod
+spec:
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+          - matchExpressions:
+              - key: disktype
+                operator: NotIn
+                values:
+                  - hdd
+  containers:
+    - name: uc
+      image: ubuntu:latest
+      command: ["/bin/bash", "-c", "while true; do echo Hello-DevOps; sleep 5; done"]
+
+
+commands
+========
+kubectl get nodes --show-labels
+kubectl apply -f hardnaa.yaml
+kubectl get pods -o wide
+kubectl delete -f hardnaa.yaml
+
+
+softna.yaml
+===========
+apiVersion: v1
+kind: Pod
+metadata:
+  name: example-pod
+spec:
+  affinity:
+    nodeAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 1
+          preference:
+            matchExpressions:
+              - key: disktype
+                operator: NotIn
+                values:
+                  - ssd1
+  containers:
+    - name: uc
+      image: ubuntu:latest
+      command: ["/bin/bash", "-c", "while true; do echo Hello-DevOps; sleep 5; done"]
+
+Commands
+========
+kubectl apply -f softnaa.yaml
+kubectl get pods -o wide
+kubectl delete -f softnaa.yaml
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+pod affinity demo
+=================
+
+samplepod.yaml
+==============
+---
+  kind: Pod
+  apiVersion: v1
+  metadata:
+    name: samplepod
+    labels:                       # Specifies the Label details under it
+      app: psddevops
+  spec:
+    containers:
+      - name: c1
+        image: ubuntu:latest
+        command: ["/bin/bash", "-c", "while true; do echo Hello-psddevops; sleep 5 ; done"]
+    nodeSelector:
+      disktype: ssd
+
+Commands
+========
+kubectl apply -f samplepod.yaml
+kubectl get pods -o wide
+
+
+testpod.yaml
+============
+---
+  kind: Pod
+  apiVersion: v1
+  metadata:
+    name: testpod
+    labels:                       # Specifies the Label details under it
+      team: dev
+  spec:
+    containers:
+      - name: c1
+        image: ubuntu:latest
+        command: ["/bin/bash", "-c", "while true; do echo Hello-psddevops; sleep 5 ; done"]
+    nodeSelector:
+      disktype: hdd
+
+Commands
+========
+kubectl apply -f testpod.yaml
+kubectl get pods -o wide
+
+
+hardpa.yaml
+===========
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-server
+spec:
+  affinity:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+          - key: team
+            operator: In  # verify In, NotIn conditions
+            values:
+            - dev
+        topologyKey: "kubernetes.io/hostname"
+  containers:
+  - name: web-server
+    image: nginx
+
+
+Commands:
+=========
+kubectl apply -f hardpa.yaml
+kubectl get pods -o wide
+
+
+softpa.yaml
+===========
+apiVersion: v1
+kind: Pod
+metadata:
+  name: web-server
+spec:
+  affinity:
+    podAffinity:
+      # Soft Rule: Prefer to co-locate with frontend pods
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 80
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: NotIn
+              values:
+              - psddevops
+          topologyKey: "kubernetes.io/hostname"
+  containers:
+  - name: web-server
+    image: nginx
+
+Commands:
+=========
+kubectl apply -f softpa.yaml
