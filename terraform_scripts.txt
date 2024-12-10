@@ -1,0 +1,830 @@
+========================================********************==========================================
+# main.tf
+
+   provider "aws" {
+     region = "us-east-1"  # Set your desired AWS region
+   }
+
+   resource "aws_instance" "myec2" {
+     ami           = "ami-00f251754ac5da7f0"  # Specify an appropriate AMI ID
+     instance_type = "t2.micro"
+     subnet_id = "subnet-0115fefdf1441e12d"   # Subnet-id
+     key_name = "nv_test"					  # private key which we need to login
+    
+    tags = {
+    Name = "gold-public-server"				  # Name of the server
+            }
+     
+   }
+
+
+
+Commands
+========
+
+terraform init
+
+terraform plan
+
+terraform apply
+
+terraform destroy
+
+========================================********************==========================================
+main.tf
+=======
+
+   provider "aws" {
+     region = "us-east-1"  # Set your desired AWS region
+   }
+
+   resource "aws_instance" "myec2" {
+     ami           = var.ami_id # Specify an appropriate AMI ID
+     instance_type = var.instance_type
+     subnet_id = var.subnet
+     key_name = "nv_test"
+    tags = {
+    Name = "gold-public-server"
+            }
+       
+   }
+
+   variable "ami_id" {
+     description = "enter the ami-id description"
+     type = string
+     default = "ami-00f251754ac5da7f0"
+   }
+
+   variable "instance_type" {
+     description = "enter the instance type"
+     type = string
+     default = "t2.micro"
+   }
+
+   variable "subnet" {
+     description = "enter subnet-id"
+     type = string
+     default = "subnet-0115fefdf1441e12d"
+   }
+
+   variable "key_name" {
+    description = "enter the private key name"
+    type = string
+    default = "nv_test"
+   }
+
+   output "public_ip" {
+    value= aws_instance.myec2.public_ip
+     
+   }
+
+
+========================================********************==========================================
+#main.tf
+
+resource "aws_instance" "myec2" {
+     ami           = var.ami_id # Specify an appropriate AMI ID
+     instance_type = var.instance_type
+     subnet_id = var.subnet
+     key_name = "nv_test"
+    tags = {
+    Name = "gold-public-server"
+            }
+       
+   }
+
+#providers.tf
+
+   provider "aws" {
+     region = "us-east-1"  # Set your desired AWS region
+   }
+
+
+#variables.tf
+
+   variable "ami_id" {
+     description = "enter the ami-id description"
+     type = string
+     default = "ami-00f251754ac5da7f0"
+   }
+
+   variable "instance_type" {
+     description = "enter the instance type"
+     type = string
+     default = "t2.micro"
+   }
+
+   variable "subnet" {
+     description = "enter subnet-id"
+     type = string
+     default = "subnet-0115fefdf1441e12d"
+   }
+
+   variable "key_name" {
+    description = "enter the private key name"
+    type = string
+    default = "nv_test"
+   }
+
+#outputs.tf
+  output "public_ip" {
+    value= aws_instance.myec2.public_ip
+   }
+
+========================================********************==========================================
+
+Modules -demo
+==============
+
+create folder
+
+mkdir ./modules/ec2/
+
+main.tf
+
+resource "aws_instance" "myec2" {
+     ami           = var.ami_id # Specify an appropriate AMI ID
+     instance_type = var.instance_type
+     subnet_id = var.subnet
+     key_name = "nv_test"
+    tags = {
+    Name = "gold-public-server"
+            }
+       
+   }
+
+#providers.tf
+
+   provider "aws" {
+     region = "us-east-1"  # Set your desired AWS region
+   }
+
+
+#variables.tf
+
+   variable "ami_id" {
+     description = "enter the ami-id description"
+     type = string
+     #default = "ami-00f251754ac5da7f0"
+   }
+
+   variable "instance_type" {
+     description = "enter the instance type"
+     type = string
+     #default = "t2.micro"
+   }
+
+   variable "subnet" {
+     description = "enter subnet-id"
+     type = string
+     #default = "subnet-0115fefdf1441e12d"
+   }
+
+   variable "key_name" {
+    description = "enter the private key name"
+    type = string
+    #default = "nv_test"
+   }
+
+#outputs.tf
+  output "public_ip" {
+    value= aws_instance.myec2.public_ip
+   }
+
+
+cd ../..
+
+create main.tf
+==============
+provider "aws" {
+     region = "us-east-1"  # Set your desired AWS region
+   }
+
+module "ec2_instance" {
+  source = "./modules/ec2"
+  ami_id = "ami-00f251754ac5da7f0"
+  instance_type = "t2.micro"
+  subnet = "subnet-0115fefdf1441e12d"
+  key_name = "nv_test"
+}
+
+
+commands
+========
+terraform init
+terraform plan
+terraform apply
+
+
+==========================================
+Workspaces demo
+===============
+cd /d/terraform/workspaces/modules/ec2
+
+main.tf
+resource "aws_instance" "myec2" {
+     ami           = var.ami_id # Specify an appropriate AMI ID
+     instance_type = var.instance_type
+     subnet_id = var.subnet
+     key_name = var.key_name
+    tags = {
+    Name = "gold-public-server"
+            }
+       
+   }
+
+
+variables.tf
+
+   variable "ami_id" {
+     description = "enter the ami-id description"
+     type = string
+     #default = "ami-00f251754ac5da7f0"
+   }
+
+   variable "instance_type" {
+     description = "enter the instance type"
+     type = string
+     #default = "t2.micro"
+   }
+
+   variable "subnet" {
+     description = "enter subnet-id"
+     type = string
+     #default = "subnet-0115fefdf1441e12d"
+   }
+
+   variable "key_name" {
+    description = "enter the private key name"
+    type = string
+    #default = "nv_test"
+   }
+
+
+
+outputs.tf
+
+   output "public_ip" {
+    value= aws_instance.myec2.public_ip
+   }
+
+providers.tf
+
+   provider "aws" {
+     region = "us-east-1"  # Set your desired AWS region
+   }
+
+
+
+
+main.tf  
+
+ provider "aws" {
+     region = "us-east-1"  # Set your desired AWS region
+   }
+
+module "ec2_instance" {
+  source = "./modules/ec2"
+  ami_id = var.ami_id
+  instance_type = lookup(var.instance_type, terraform.workspace, "t2.medium")
+  subnet = var.subnet
+  key_name = var.key_name
+}
+
+
+variables.tf
+
+   variable "ami_id" {
+     description = "enter the ami-id description"
+     type = string
+     #default = "ami-00f251754ac5da7f0"
+   }
+
+  variable "instance_type" {
+  description = "value"
+  type = map(string)
+
+  default = {
+    "dev" = "t2.micro"
+    "stage" = "t2.small"
+    "prod" = "t2.medium"
+  }
+}
+   variable "subnet" {
+     description = "enter subnet-id"
+     type = string
+     #default = "subnet-0115fefdf1441e12d"
+   }
+
+   variable "key_name" {
+    description = "enter the private key name"
+    type = string
+    #default = "nv_test"
+   }
+
+terraform.tfvars
+
+ami_id = "ami-00f251754ac5da7f0"
+
+#instance_type = "t2.micro"
+
+subnet = "subnet-0115fefdf1441e12d"
+
+key_name = "nv_test"
+
+
+
+
+
+terraform workspace show
+terraform workspace new dev
+terraform workspace new stage
+terraform workspace new prod
+terraform workspace show
+
+
+terraform workspace list
+
+terraform workspace select dev
+terraform init
+terraform plan
+terraform apply
+
+terraform workspace select stage
+terraform init
+terraform plan
+terraform apply
+
+
+terraform workspace select prod
+terraform init
+terraform plan
+terraform apply
+
+
+
+terraform workspace select default
+terraform init
+terraform plan
+terraform apply
+
+
+terraform workspace select default
+terraform destroy
+
+terraform workspace select dev
+terraform destroy
+terraform workspace select stage
+terraform destroy
+
+terraform workspace select prod
+terraform destroy
+
+
+
+terraform workspace delete dev
+terraform workspace delete stage
+terraform workspace delete prod
+
+
+==================
+
+Creating VPC
+============
+
+provider "aws" {
+    region = "us-east-1"
+}
+
+resource "aws_vpc" "my_vpc" {
+
+cidr_block       = "10.16.0.0/16"
+instance_tenancy = "default"
+
+  tags = {
+    Name = "silver-vpc"
+    Env = "Dev"
+  }
+  
+}
+
+
+
+========================================********************==========================================
+
+Printing output variables
+=========================
+provider "aws" {
+    region = "us-east-1"
+}
+
+resource "aws_vpc" "my_vpc" {
+
+cidr_block       = "10.16.0.0/16"
+instance_tenancy = "default"
+
+  tags = {
+    Name = "silver-vpc"
+    Env = "Dev"
+  }
+  
+}
+
+output "vpc_cidr" {
+
+value = aws_vpc.my_vpc.cidr_block    
+}
+
+output "vpc_id"{
+    value= aws_vpc.my_vpc.id
+}
+
+
+
+========================================********************=================================
+Observing state file
+====================
+
+
+provider "aws" {
+    region = "us-east-1"
+}
+
+resource "aws_vpc" "my_vpc" {
+
+cidr_block       = "10.16.0.0/16"
+instance_tenancy = "default"
+
+  tags = {
+    Name = "silver-vpc"
+    Env = "Dev"
+    Location= "India"
+  }
+  
+}
+
+output "vpc_cidr" {
+
+value = aws_vpc.my_vpc.cidr_block    
+}
+
+output "vpc_id"{
+    value= aws_vpc.my_vpc.id
+}
+
+
+
+========================================********************=================================
+State file storing in S3 backend
+
+Create S3 bucket first manually or programmetic
+aws s3api create-bucket --bucket terraformremotesf --region us-east-1
+
+aws s3api put-bucket-versioning --bucket terraformremotesf --versioning-configuration Status=Enabled
+
+
+provider "aws" {
+    region = "us-east-1"
+}
+
+terraform {
+  backend "s3" {
+    bucket = "terraformremotesf"
+    key    = "ppreddy/terraform.tfstate"
+    region = "us-east-1"
+    encrypt = true           # Enable server-side encryption
+    #versioning = true        # Optional: Enable versioning in Terraform (already done in S3)
+  }
+} 
+
+
+resource "aws_vpc" "my_vpc" {
+
+cidr_block       = "10.16.0.0/16"
+instance_tenancy = "default"
+
+  tags = {
+    Name = "silver-vpc"
+    Env = "Dev"
+    #Location= "India"
+  }
+  
+}
+
+output "vpc_cidr" {
+
+value = aws_vpc.my_vpc.cidr_block    
+}
+
+output "vpc_id"{
+    value= aws_vpc.my_vpc.id
+}
+
+
+
+
+========================================********************=================================
+Applying locking on tf.state file
+
+create dynamodb table
+
+aws dynamodb create-table \
+    --table-name terraform-locks \
+    --attribute-definitions AttributeName=LockID,AttributeType=S \
+    --key-schema AttributeName=LockID,KeyType=HASH \
+    --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5
+
+
+provider "aws" {
+    region = "us-east-1"
+}
+
+terraform {
+  backend "s3" {
+    bucket = "terraformremotesf"
+    key    = "ppreddy/terraform.tfstate"
+    region = "us-east-1"
+    encrypt = true           # Enable server-side encryption
+    #versioning = true        # Optional: Enable versioning in Terraform (already done in S3)
+    dynamodb_table = "terraform-locks"
+  }
+} 
+
+
+resource "aws_vpc" "my_vpc" {
+
+cidr_block       = "10.16.0.0/16"
+instance_tenancy = "default"
+
+  tags = {
+    Name = "silver-vpc"
+    Env = "Dev"
+    #Location= "India"
+  }
+  
+}
+
+output "vpc_cidr" {
+
+value = aws_vpc.my_vpc.cidr_block    
+}
+
+output "vpc_id"{
+    value= aws_vpc.my_vpc.id
+}
+
+
+========================================********************=================================
+Demo on variables
+
+variables.tf
+============
+
+variable "cidr_block"{
+    description = "Enter CIDR block"
+    type = string
+    default =  "10.16.0.0/16"
+}
+
+main.tf
+=======
+provider "aws" {
+    region = "us-east-1"
+}
+
+resource "aws_vpc" "my_vpc" {
+cidr_block       = var.cidr_block
+
+instance_tenancy = "default"
+
+  tags = {
+    Name = "silver-vpc"
+    Env = "Dev"
+    #Location= "India"
+  }
+  
+}
+
+output "vpc_cidr" {
+value = aws_vpc.my_vpc.cidr_block    
+}
+
+output "vpc_id"{
+    value= aws_vpc.my_vpc.id
+}
+
+
+commands:
+=========
+
+terraform init
+terraform plan
+terraform apply -auto-approve
+terraform destory
+
+
+========================================********************=================================
+
+Passing variables from command line
+
+variables.tf
+============
+
+variable "cidr_block"{
+    description = "Enter CIDR block"
+    type = string
+    default =  "10.16.0.0/16"
+}
+
+main.tf
+=======
+provider "aws" {
+    region = "us-east-1"
+}
+
+resource "aws_vpc" "my_vpc" {
+cidr_block       = var.cidr_block
+
+instance_tenancy = "default"
+
+  tags = {
+    Name = "silver-vpc"
+    Env = "Dev"
+    #Location= "India"
+  }
+  
+}
+
+output "vpc_cidr" {
+value = aws_vpc.my_vpc.cidr_block    
+}
+
+output "vpc_id"{
+    value= aws_vpc.my_vpc.id
+}
+
+commands:
+=========
+
+terraform init
+terraform plan
+terraform apply -var "cidr_block=10.18.0.0/16" -auto-approve
+terraform destory
+
+========================================********************=================================
+
+Creating .tfvars file
+
+variables.tf
+============
+
+variable "cidr_block"{
+    description = "Enter CIDR block"
+    type = string
+    
+}
+
+
+dev.tfvars
+==========
+cidr_block = "10.18.0.0/16"
+
+main.tf
+=======
+provider "aws" {
+    region = "us-east-1"
+}
+
+resource "aws_vpc" "my_vpc" {
+cidr_block       = var.cidr_block
+
+instance_tenancy = "default"
+
+  tags = {
+    Name = "silver-vpc"
+    Env = "Dev"
+    #Location= "India"
+  }
+  
+}
+
+output "vpc_cidr" {
+value = aws_vpc.my_vpc.cidr_block    
+}
+
+output "vpc_id"{
+    value= aws_vpc.my_vpc.id
+}
+
+commands:
+=========
+
+terraform init
+terraform plan
+terraform apply -var-file=dev.tfvars -auto-approve
+terraform destory
+
+========================================********************=================================
+Creating output.tf file
+
+variables.tf
+============
+
+variable "cidr_block"{
+    description = "Enter CIDR block"
+    type = string
+    
+}
+
+
+output.tf
+=========
+
+output "vpc_cidr" {
+value = aws_vpc.my_vpc.cidr_block    
+}
+
+output "vpc_id"{
+    value= aws_vpc.my_vpc.id
+}
+
+
+
+dev.tfvars
+==========
+cidr_block = "10.18.0.0/16"
+
+main.tf
+=======
+provider "aws" {
+    region = "us-east-1"
+}
+
+resource "aws_vpc" "my_vpc" {
+cidr_block       = var.cidr_block
+
+instance_tenancy = "default"
+
+  tags = {
+    Name = "silver-vpc"
+    Env = "Dev"
+    #Location= "India"
+  }
+  
+}
+
+
+commands:
+=========
+
+terraform init
+terraform plan
+terraform apply -var-file=dev.tfvars -auto-approve
+terraform destory
+
+
+
+
+========================================********************=================================
+terraform loops --> By using count we can perform
+================
+
+provider "aws" {
+     region = "us-east-1"  # Set your desired AWS region
+   }
+
+   resource "aws_instance" "myec2" {
+     count  = 2
+     ami           = var.ami_id # Specify an appropriate AMI ID
+     instance_type = var.instance_type
+     subnet_id = var.subnet
+     key_name = "nv_test"
+    tags = {
+    Name = "gold-public-server"
+            }
+       
+   }
+
+   variable "ami_id" {
+     description = "enter the ami-id description"
+     type = string
+     default = "ami-0166fe664262f664c"
+   }
+
+   variable "instance_type" {
+     description = "enter the instance type"
+     type = string
+     default = "t2.micro"
+   }
+
+   variable "subnet" {
+     description = "enter subnet-id"
+     type = string
+     default = "subnet-0115fefdf1441e12d"
+   }
+
+   variable "key_name" {
+    description = "enter the private key name"
+    type = string
+    default = "nv_test"
+   }
