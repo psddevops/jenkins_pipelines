@@ -828,3 +828,782 @@ provider "aws" {
     type = string
     default = "nv_test"
    }
+   
+   Using for-each loop
+===================
+
+
+   provider "aws" {
+     region = "us-east-1"  # Set your desired AWS region
+   }
+
+   resource "aws_instance" "myec2" {
+    for_each = toset(["public-server-1", "public-server-2", "public-server-3"])
+    ami           = var.ami_id # Specify an appropriate AMI ID
+    instance_type = var.instance_type
+    subnet_id = var.subnet
+    key_name = "nv_test"
+    tags = {
+    Name = each.key
+            }
+       
+   }
+
+   variable "ami_id" {
+     description = "enter the ami-id description"
+     type = string
+     default = "ami-00f251754ac5da7f0"
+   }
+
+   variable "instance_type" {
+     description = "enter the instance type"
+     type = string
+     default = "t2.micro"
+   }
+
+   variable "subnet" {
+     description = "enter subnet-id"
+     type = string
+     default = "subnet-0115fefdf1441e12d"
+   }
+
+   variable "key_name" {
+    description = "enter the private key name"
+    type = string
+    default = "nv_test"
+   }
+
+
+=============================
+
+Using count at workspace level
+==============================
+terraform workspace new dev
+terraform workspace new prod
+
+terraform workspace select dev
+terraform workspace show
+
+   provider "aws" {
+     region = "us-east-1"  # Set your desired AWS region
+   }
+
+   resource "aws_instance" "myec2" {
+    count = terraform.workspace == "dev" ? 1:0
+    ami           = var.ami_id # Specify an appropriate AMI ID
+    instance_type = var.instance_type
+    subnet_id = var.subnet
+    key_name = "nv_test"
+    tags = {
+    Name = gold-public-server
+            }
+       
+   }
+
+   variable "ami_id" {
+     description = "enter the ami-id description"
+     type = string
+     default = "ami-00f251754ac5da7f0"
+   }
+
+   variable "instance_type" {
+     description = "enter the instance type"
+     type = string
+     default = "t2.micro"
+   }
+
+   variable "subnet" {
+     description = "enter subnet-id"
+     type = string
+     default = "subnet-0115fefdf1441e12d"
+   }
+
+   variable "key_name" {
+    description = "enter the private key name"
+    type = string
+    default = "nv_test"
+   }
+
+
+terraform workspace select prod
+terraform workspace show
+
+   provider "aws" {
+     region = "us-east-1"  # Set your desired AWS region
+   }
+
+   resource "aws_instance" "myec2" {
+    count = terraform.workspace == "dev" ? 0:1
+    ami           = var.ami_id # Specify an appropriate AMI ID
+    instance_type = var.instance_type
+    subnet_id = var.subnet
+    key_name = "nv_test"
+    tags = {
+    Name = gold-public-server
+            }
+       
+   }
+
+   variable "ami_id" {
+     description = "enter the ami-id description"
+     type = string
+     default = "ami-00f251754ac5da7f0"
+   }
+
+   variable "instance_type" {
+     description = "enter the instance type"
+     type = string
+     default = "t2.micro"
+   }
+
+   variable "subnet" {
+     description = "enter subnet-id"
+     type = string
+     default = "subnet-0115fefdf1441e12d"
+   }
+
+   variable "key_name" {
+    description = "enter the private key name"
+    type = string
+    default = "nv_test"
+   }
+
+  /* output "public_ip" {
+    value= aws_instance.myec2.public_ip[1]
+     
+   }*/
+
+
+=======================================
+
+
+Implementing locals variable concept
+
+   provider "aws" {
+     region = "us-east-1"  # Set your desired AWS region
+   }
+
+   resource "aws_instance" "myec2" {
+    ami           = var.ami_id # Specify an appropriate AMI ID
+    instance_type = var.instance_type
+    subnet_id = var.subnet
+    key_name = "nv_test"
+    tags = {
+    Name = "${local.server_name}"
+            }
+       
+   }
+
+   locals {
+     server_name= "${terraform.workspace == "dev" ? "gold-public-server":"diamond-public-server"}"
+   }
+
+   variable "ami_id" {
+     description = "enter the ami-id description"
+     type = string
+     default = "ami-00f251754ac5da7f0"
+   }
+
+   variable "instance_type" {
+     description = "enter the instance type"
+     type = string
+     default = "t2.micro"
+   }
+
+   variable "subnet" {
+     description = "enter subnet-id"
+     type = string
+     default = "subnet-0115fefdf1441e12d"
+   }
+
+   variable "key_name" {
+    description = "enter the private key name"
+    type = string
+    default = "nv_test"
+   }
+
+  /* output "public_ip" {
+    value= aws_instance.myec2.public_ip[1]
+     
+   }*/
+
+
+Implementing locals variable concept
+
+terraform workspace select prod
+
+locals.tf
+=========
+   locals {
+     server_name= "${terraform.workspace == "dev" ? "gold-public-server":"diamond-public-server"}"
+   }
+
+
+main.tf
+=======
+   provider "aws" {
+     region = "us-east-1"  # Set your desired AWS region
+   }
+
+   resource "aws_instance" "myec2" {
+    ami           = var.ami_id # Specify an appropriate AMI ID
+    instance_type = var.instance_type
+    subnet_id = var.subnet
+    key_name = "nv_test"
+    tags = {
+    Name = "${local.server_name}"
+            }
+       
+   }
+
+
+   variable "ami_id" {
+     description = "enter the ami-id description"
+     type = string
+     default = "ami-00f251754ac5da7f0"
+   }
+
+   variable "instance_type" {
+     description = "enter the instance type"
+     type = string
+     default = "t2.micro"
+   }
+
+   variable "subnet" {
+     description = "enter subnet-id"
+     type = string
+     default = "subnet-0115fefdf1441e12d"
+   }
+
+   variable "key_name" {
+    description = "enter the private key name"
+    type = string
+    default = "nv_test"
+   }
+
+  /* output "public_ip" {
+    value= aws_instance.myec2.public_ip[1]
+     
+   }*/
+
+
+   terraform apply -auto-approve
+
+
+   ======================================================
+
+terraform import command
+
+provider "aws" {
+  region = "us-east-1"
+}
+
+resource "aws_vpc" "myvpc"{
+    cidr_block = "10.10.0.0/16"  # existing vpc cidr
+    tags = {
+      Name = "diamond-vpc"       # existing vpc tag
+    }
+}
+
+terraform import aws_vpc.myvpc vpc-0bed8eff2de156788
+
+
+
+
+
+========================================********************=================================
+
+terraform import block
+======================
+
+
+provider "aws" {
+  region = "us-east-1"
+}
+
+resource "aws_vpc" "myvpc"{
+    cidr_block = "10.10.0.0/16"  # existing vpc cidr
+    tags = {
+      Name = "diamond-vpc-01"       # existing vpc tag
+    }
+}
+
+import {
+  id    = "vpc-0a4648ea201488971"
+  to    = aws_vpc.myvpc
+}
+
+
+
+Commands
+========
+terraform init
+terraform plan
+terraform destroy
+
+====================================
+
+$ terraform console
+
+> cidrsubnet ("172.16.0.0/16", 8, 1)
+"172.16.1.0/24"
+> cidrsubnet ("172.16.0.0/16", 8, 2)
+"172.16.2.0/24"
+
+cidrsubnet ("172.16.0.0/16", 16, 2)
+
+terraform workspace new dev
+terraform workspace select dev
+terraform workspace show
+
+vars.tf
+=======
+variable "region" {
+  description = "Select region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "cidr_block" {
+  description = "eneter cidr block"
+  type        = string
+  default     = "10.18.0.0/16"
+
+}
+
+providers.tf
+============
+provider "aws" {
+  region = "${var.region}"
+}
+
+
+vpc.tf
+======
+resource "aws_vpc" "myvpc" {
+  cidr_block       = "${var.cidr_block}"
+  instance_tenancy = "default"
+
+  tags = {
+    Name = "psd-vpc"
+    Env= "${terraform.workspace}"
+  }
+
+}
+
+resource "aws_subnet" "mysubnet"{
+    count=3
+    vpc_id = aws_vpc.myvpc.id
+    cidr_block = "${cidrsubnet(var.cidr_block,8,count.index + 1)}"
+
+    tags = {
+      Name="Subnet-${count.index + 1}"
+    }
+}
+
+
+10.18.1.0/24, 10.18.2.0/24, 10.18.3.0/24, 
+
+Subnet-1, Subnet-2, Subnet-3
+==================================================
+
+vars.tf
+=======
+variable "region" {
+  description = "Select region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "cidr_block" {
+  description = "eneter cidr block"
+  type        = string
+  default     = "10.18.0.0/16"
+
+}
+
+providers.tf
+============
+provider "aws" {
+  region = "${var.region}"
+}
+
+
+datasources.tf
+==============
+
+data "aws_availability_zones" "az" {
+  state = "available"
+}
+
+
+vpc.tf
+======
+resource "aws_vpc" "myvpc" {
+  cidr_block       = "${var.cidr_block}"
+  instance_tenancy = "default"
+
+  tags = {
+    Name = "psd-vpc"
+    Env= "${terraform.workspace}"
+  }
+
+}
+
+publicsubnets.tf
+================
+locals{
+    az_names= data.aws_availability_zones.az.names
+}
+
+resource "aws_subnet" "mypublicsubnet"{
+    count="${length(local.az_names)}"
+    vpc_id = aws_vpc.myvpc.id
+    #cidr_block = "${cidrsubnet(var.cidr_block,8,count.index + 1)}"
+    cidr_block = cidrsubnet(var.cidr_block,8,count.index +1)
+    availability_zone = local.az_names[count.index]
+    map_public_ip_on_launch = true
+    tags = {
+      Name="PSD-Subnet-${count.index + 1}"
+    }
+}
+
+
+//6
+=====================
+========================================********************=================================
+Create VPC , IGW, Subnets in all AZ's and assosiate Public RT
+
+
+vars.tf
+=======
+variable "region" {
+  description = "Select region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "cidr_block" {
+  description = "eneter cidr block"
+  type        = string
+  default     = "10.18.0.0/16"
+
+}
+
+providers.tf
+============
+provider "aws" {
+  region = "${var.region}"
+}
+
+
+datasources.tf
+==============
+
+data "aws_availability_zones" "az" {
+  state = "available"
+}
+
+
+vpc.tf
+======
+resource "aws_vpc" "myvpc" {
+  cidr_block       = "${var.cidr_block}"
+  instance_tenancy = "default"
+
+  tags = {
+    Name = "psd-vpc"
+    Env= "${terraform.workspace}"
+  }
+
+}
+
+publicsubnets.tf
+================
+locals{
+    az_names= data.aws_availability_zones.az.names
+    public_subnet_id= aws_subnet.publicsubnet.*.id
+}
+
+resource "aws_subnet" "publicsubnet"{
+    count="${length(local.az_names)}"
+    vpc_id = aws_vpc.myvpc.id
+    #cidr_block = "${cidrsubnet(var.cidr_block,8,count.index + 1)}"
+    cidr_block = cidrsubnet(var.cidr_block,8,count.index +1)
+    availability_zone = local.az_names[count.index]
+    map_public_ip_on_launch = true
+    tags = {
+      Name="PSD-Public-Subnet-${count.index + 1}"
+    }
+}
+
+resource "aws_internet_gateway" "myigw" {
+    vpc_id = aws_vpc.myvpc.id
+    tags = {
+      Name = "psdigw"
+    }
+  
+}
+
+resource "aws_route_table" "prt" {
+  vpc_id = aws_vpc.myvpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.myigw.id
+  }
+
+    tags = {
+    Name = "PSD-Public-Route-Table"
+  }
+}
+
+resource "aws_route_table_association" "prtassosiation" {
+    count="${length(local.az_names)}"
+    route_table_id = aws_route_table.prt.id
+    subnet_id      = local.public_subnet_id[count.index]
+}
+
+===============================
+
+========================================********************=================================
+Create VPC , IGW, Public/Private Subnets in all AZ's and assosiate Public RT
+
+
+vars.tf
+=======
+variable "region" {
+  description = "Select region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "cidr_block" {
+  description = "eneter cidr block"
+  type        = string
+  default     = "10.18.0.0/16"
+
+}
+
+providers.tf
+============
+provider "aws" {
+  region = "${var.region}"
+}
+
+
+datasources.tf
+==============
+
+data "aws_availability_zones" "az" {
+  state = "available"
+}
+
+
+vpc.tf
+======
+resource "aws_vpc" "myvpc" {
+  cidr_block       = "${var.cidr_block}"
+  instance_tenancy = "default"
+  enable_dns_hostnames = true
+  tags = {
+    Name = "psd-vpc"
+    Env= "${terraform.workspace}"
+  }
+
+}
+
+publicsubnets.tf
+================
+locals{
+    az_names= data.aws_availability_zones.az.names
+    public_subnet_id= aws_subnet.publicsubnet.*.id
+}
+
+resource "aws_subnet" "publicsubnet"{
+    count="${length(local.az_names)}"
+    vpc_id = aws_vpc.myvpc.id
+    #cidr_block = "${cidrsubnet(var.cidr_block,8,count.index + 1)}"
+    cidr_block = cidrsubnet(var.cidr_block,8,count.index +1)
+    availability_zone = local.az_names[count.index]
+    map_public_ip_on_launch = true
+    tags = {
+      Name="PSD-Public-Subnet-${count.index + 1}"
+    }
+}
+
+resource "aws_internet_gateway" "myigw" {
+    vpc_id = aws_vpc.myvpc.id
+    tags = {
+      Name = "psdigw"
+    }
+  
+}
+
+resource "aws_route_table" "prt" {
+  vpc_id = aws_vpc.myvpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.myigw.id
+  }
+
+    tags = {
+    Name = "PSD-Public-Route-Table"
+  }
+}
+
+resource "aws_route_table_association" "prtassosiation" {
+    count="${length(local.az_names)}"
+    route_table_id = aws_route_table.prt.id
+    subnet_id      = local.public_subnet_id[count.index]
+}
+
+
+privatesubnets.tf
+=================
+resource "aws_subnet" "privatesubnet"{
+    count="${length(slice(local.az_names,0,3))}"
+    vpc_id = aws_vpc.myvpc.id
+    cidr_block = cidrsubnet(var.cidr_block,8,count.index + length(local.az_names) +1)
+    availability_zone = local.az_names[count.index]
+
+    tags = {
+      Name="PSD-Private-Subnet-${count.index + 1}"
+    }
+}
+
+resource "aws_route_table" "privatert" {
+  vpc_id = aws_vpc.myvpc.id
+ 
+    tags = {
+    Name = "PSD-Private-Route-Table"
+  }
+}
+
+resource "aws_route_table_association" "privatertassosiation" {
+    count="${length(slice(local.az_names,0,3))}"
+    route_table_id = aws_route_table.privatert.id
+    subnet_id      = aws_subnet.privatesubnet.*.id[count.index]
+}
+
+
+[az-1,az-2,az-3,az-4,az-5,az-6]
+
+[0,1,2,3,4,5]
+==========================
+========================================********************=================================
+
+Creating EC2 instance inside public subnet
+==========================================
+
+vars.tf
+=======
+variable "region" {
+  description = "Select region"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "cidr_block" {
+  description = "eneter cidr block"
+  type        = string
+  default     = "10.18.0.0/16"
+
+}
+
+variable "ami" {
+  description= "enter ami"
+  type = string
+  default= "ami-00f251754ac5da7f0"
+  
+}
+
+variable "instance_type"{
+  description = "select instance type"
+  type= string
+  default = "t2.micro"
+}
+
+variable "tags" {
+  description = "enter tags"
+  type = map(string)
+  default = {
+    "Name" = "Webserver"
+  }
+}
+
+
+
+
+instances.tf
+============
+locals {
+  env_tag={
+    Environment= "${terraform.workspace}"
+  }
+
+  instance_tags= "${merge(var.tags,local.env_tag)}"
+}
+
+
+
+resource "aws_instance" "myec2" {
+  ami           = var.ami # Specify an appropriate AMI ID
+  instance_type = var.instance_type
+  subnet_id     = local.public_subnet_id[0]
+  #key_name      = "nv_test"
+  tags = local.instance_tags
+}
+
+
+
+
+
+========================================********************=================================
+
+Adding userdata to the Ec2 instance
+
+scripts/apache.sh
+=================
+#!/bin/bash
+# Use this for your user data (script from top to bottom)
+# install httpd (Linux 2 version)
+yum update -y
+yum install -y httpd
+systemctl start httpd
+systemctl enable httpd
+echo "<h1>Hello World from server $(hostname -f)</h1>" > /var/www/html/index.html
+systemctl restart httpd
+chkconfig httpd on
+
+instances.tf
+============
+
+provider "aws" {
+     region = "us-east-1"  # Set your desired AWS region
+   }
+
+   resource "aws_instance" "myec2" {
+     ami           = "ami-00f251754ac5da7f0"  # Specify an appropriate AMI ID
+     instance_type = "t2.micro"
+     subnet_id = "subnet-0115fefdf1441e12d"   # Subnet-id
+     key_name = "nv_test"           # private key which we need to login
+      user_data = file("scripts/apache.sh")
+    
+    tags = {
+    Name = "gold-public-server"         # Name of the server
+            }
+     
+   }
+
+
+Commands:
+=========
+
+terraform init
+terraform plan
+terraform apply
+terraform delete
+
+========================================********************==========================================
